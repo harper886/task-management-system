@@ -56,6 +56,9 @@ public class MainFrame extends JFrame {
         JButton sortByDueDateButton = new JButton("按截止时间排序");
         JButton sortByStatusButton = new JButton("按状态排序");
 
+        // 新增：日历视图按钮
+        JButton calendarButton = new JButton("日历视图");
+
         buttonPanel.add(addButton);
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
@@ -64,6 +67,7 @@ public class MainFrame extends JFrame {
         buttonPanel.add(trashButton); // 添加回收站按钮
         buttonPanel.add(sortByDueDateButton);
         buttonPanel.add(sortByStatusButton);
+        buttonPanel.add(calendarButton); // 添加日历视图按钮
 
         // 任务表格
         tableModel = new DefaultTableModel(new Object[]{"ID", "标题", "优先级", "截止时间", "状态"}, 0) {
@@ -166,6 +170,11 @@ public class MainFrame extends JFrame {
             // 按状态排序（自定义顺序）
             sorter.setSortKeys(Collections.singletonList(new RowSorter.SortKey(4, SortOrder.ASCENDING)));
             sorter.sort();
+        });
+
+        // 添加日历视图按钮事件
+        calendarButton.addActionListener(e -> {
+            new CalendarView(userId).setVisible(true);
         });
     }
 
