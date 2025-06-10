@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static dao.DatabaseConnection.getConnection;
+
 public class TaskDAO {
     // 保存或更新任务
     public static boolean saveTask(Task task) {
@@ -18,7 +20,7 @@ public class TaskDAO {
             sql = "UPDATE tasks SET title = ?, description = ?, priority = ?, due_date = ?, status = ? WHERE task_id = ?";
         }
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, task.getTitle());
@@ -55,7 +57,7 @@ public class TaskDAO {
     public static boolean softDeleteTask(int taskId) {
         String sql = "UPDATE tasks SET deleted = 1, delete_time = CURRENT_TIMESTAMP WHERE task_id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, taskId);
@@ -72,7 +74,7 @@ public class TaskDAO {
     // 恢复任务（从回收站还原）
     public static boolean restoreTask(int taskId) {
         String sql = "UPDATE tasks SET deleted = 0, delete_time = NULL WHERE task_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, taskId);
             int affectedRows = pstmt.executeUpdate();
@@ -86,7 +88,7 @@ public class TaskDAO {
     // 永久删除任务（从回收站删除）
     public static boolean deleteTaskPermanently(int taskId) {
         String sql = "DELETE FROM tasks WHERE task_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, taskId);
             int affectedRows = pstmt.executeUpdate();
@@ -100,7 +102,7 @@ public class TaskDAO {
     // 清空回收站
     public static boolean emptyTrash(int userId) {
         String sql = "DELETE FROM tasks WHERE user_id = ? AND deleted = 1";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
             int affectedRows = pstmt.executeUpdate();
@@ -115,7 +117,7 @@ public class TaskDAO {
     public static List<Task> getTasksByUser(int userId) {
         List<Task> tasks = new ArrayList<>();
         String sql = "SELECT * FROM tasks WHERE user_id = ? AND deleted = 0";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
             ResultSet rs = pstmt.executeQuery();
@@ -132,7 +134,7 @@ public class TaskDAO {
     public static List<Task> getDeletedTasks(int userId) {
         List<Task> tasks = new ArrayList<>();
         String sql = "SELECT * FROM tasks WHERE user_id = ? AND deleted = 1";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
             ResultSet rs = pstmt.executeQuery();
@@ -148,7 +150,7 @@ public class TaskDAO {
     // 根据ID获取任务
     public static Task getTaskById(int taskId) {
         String sql = "SELECT * FROM tasks WHERE task_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, taskId);
             ResultSet rs = pstmt.executeQuery();
@@ -182,5 +184,14 @@ public class TaskDAO {
 
         task.setDeleted(rs.getBoolean("deleted"));
         return task;
+    }
+    public boolean permanentDeleteTask(int taskId) throws SQLException {
+        String sql = "DELETE FROM tasks WHERE task_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, taskId);
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+        }
     }
 }
