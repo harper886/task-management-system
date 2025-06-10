@@ -11,8 +11,8 @@ import org.jfree.data.general.DefaultPieDataset;
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 
 public class StatisticsFrame extends JFrame {
     private int userId;
@@ -20,15 +20,33 @@ public class StatisticsFrame extends JFrame {
     public StatisticsFrame(int userId) {
         this.userId = userId;
         setTitle("任务统计图表");
-        setSize(800, 600);
+        setSize(900, 700); // 增加尺寸以提供更好的显示
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        getContentPane().setBackground(new Color(240, 248, 255)); // 设置背景色
+        setResizable(false); // 禁止调整大小
 
         initUI();
     }
 
     private void initUI() {
+        // 主面板
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        mainPanel.setBackground(new Color(240, 248, 255));
+
+        // 标题
+        JLabel titleLabel = new JLabel("任务统计图表", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(25, 25, 112)); // 深蓝色
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 20, 0));
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+
+        // 标签页面板
         JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        tabbedPane.setBackground(new Color(240, 248, 255));
+        tabbedPane.setForeground(Color.BLACK);
 
         // 状态分布饼图
         tabbedPane.addTab("状态分布", createStatusChartPanel());
@@ -39,7 +57,53 @@ public class StatisticsFrame extends JFrame {
         // 时间分布饼图
         tabbedPane.addTab("时间分布", createTimeDistributionPanel());
 
-        add(tabbedPane);
+        mainPanel.add(tabbedPane, BorderLayout.CENTER);
+
+        // 关闭按钮
+        JButton closeButton = createStyledButton("关闭");
+        closeButton.addActionListener(e -> dispose());
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setBackground(new Color(240, 248, 255));
+        buttonPanel.add(closeButton);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 5, 0));
+
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        add(mainPanel);
+    }
+
+    private JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("微软雅黑", Font.BOLD, 16));
+        button.setBackground(new Color(220, 230, 241)); // 浅蓝色背景
+        button.setForeground(Color.BLACK); // 黑色文字
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
+                BorderFactory.createEmptyBorder(10, 30, 10, 30)
+        ));
+
+        // 鼠标悬停效果
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(180, 200, 230));
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(30, 80, 150), 2),
+                        BorderFactory.createEmptyBorder(10, 30, 10, 30)
+                ));
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(220, 230, 241));
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
+                        BorderFactory.createEmptyBorder(10, 30, 10, 30)
+                ));
+            }
+        });
+
+        return button;
     }
 
     private JPanel createStatusChartPanel() {
@@ -61,7 +125,7 @@ public class StatisticsFrame extends JFrame {
 
         // 创建饼图
         JFreeChart chart = ChartFactory.createPieChart(
-                "任务状态分布",   // 图表标题
+                null,   // 移除图表标题（因为我们在面板上有标题）
                 dataset,        // 数据集
                 true,           // 是否显示图例
                 true,           // 是否显示工具提示
@@ -81,13 +145,25 @@ public class StatisticsFrame extends JFrame {
 
         // 设置字体
         chart.getTitle().setFont(new Font("微软雅黑", Font.BOLD, 18));
-        plot.setLabelFont(new Font("微软雅黑", Font.PLAIN, 12));
+        plot.setLabelFont(new Font("微软雅黑", Font.BOLD, 14)); // 增大标签字体
 
         // 创建图表面板
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new Dimension(700, 500));
+        chartPanel.setPreferredSize(new Dimension(800, 500));
 
-        return chartPanel;
+        // 创建带标题的面板
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(240, 248, 255));
+
+        JLabel chartTitle = new JLabel("任务状态分布", SwingConstants.CENTER);
+        chartTitle.setFont(new Font("微软雅黑", Font.BOLD, 20));
+        chartTitle.setForeground(new Color(25, 25, 112));
+        chartTitle.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        panel.add(chartTitle, BorderLayout.NORTH);
+        panel.add(chartPanel, BorderLayout.CENTER);
+
+        return panel;
     }
 
     private JPanel createPriorityChartPanel() {
@@ -108,7 +184,7 @@ public class StatisticsFrame extends JFrame {
 
         // 创建饼图
         JFreeChart chart = ChartFactory.createPieChart(
-                "任务优先级分布",
+                null,
                 dataset,
                 true,
                 true,
@@ -128,9 +204,25 @@ public class StatisticsFrame extends JFrame {
 
         // 设置字体
         chart.getTitle().setFont(new Font("微软雅黑", Font.BOLD, 18));
-        plot.setLabelFont(new Font("微软雅黑", Font.PLAIN, 12));
+        plot.setLabelFont(new Font("微软雅黑", Font.BOLD, 14)); // 增大标签字体
 
-        return new ChartPanel(chart);
+        // 创建图表面板
+        ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setPreferredSize(new Dimension(800, 500));
+
+        // 创建带标题的面板
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(240, 248, 255));
+
+        JLabel chartTitle = new JLabel("任务优先级分布", SwingConstants.CENTER);
+        chartTitle.setFont(new Font("微软雅黑", Font.BOLD, 20));
+        chartTitle.setForeground(new Color(25, 25, 112));
+        chartTitle.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        panel.add(chartTitle, BorderLayout.NORTH);
+        panel.add(chartPanel, BorderLayout.CENTER);
+
+        return panel;
     }
 
     private JPanel createTimeDistributionPanel() {
@@ -172,7 +264,7 @@ public class StatisticsFrame extends JFrame {
 
         // 创建饼图
         JFreeChart chart = ChartFactory.createPieChart(
-                "任务时间分布",
+                null,
                 dataset,
                 true,
                 true,
@@ -194,9 +286,25 @@ public class StatisticsFrame extends JFrame {
 
         // 设置字体
         chart.getTitle().setFont(new Font("微软雅黑", Font.BOLD, 18));
-        plot.setLabelFont(new Font("微软雅黑", Font.PLAIN, 12));
+        plot.setLabelFont(new Font("微软雅黑", Font.BOLD, 14)); // 增大标签字体
 
-        return new ChartPanel(chart);
+        // 创建图表面板
+        ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setPreferredSize(new Dimension(800, 500));
+
+        // 创建带标题的面板
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(240, 248, 255));
+
+        JLabel chartTitle = new JLabel("任务时间分布", SwingConstants.CENTER);
+        chartTitle.setFont(new Font("微软雅黑", Font.BOLD, 20));
+        chartTitle.setForeground(new Color(25, 25, 112));
+        chartTitle.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        panel.add(chartTitle, BorderLayout.NORTH);
+        panel.add(chartPanel, BorderLayout.CENTER);
+
+        return panel;
     }
 
     public static void main(String[] args) {

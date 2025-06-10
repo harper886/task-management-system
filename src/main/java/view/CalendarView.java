@@ -12,7 +12,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -47,6 +46,7 @@ public class CalendarView extends JFrame {
         setSize(900, 700);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
+        getContentPane().setBackground(BACKGROUND_COLOR);
 
         initUI();
         loadTaskData();
@@ -130,27 +130,51 @@ public class CalendarView extends JFrame {
         JPanel navPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         navPanel.setOpaque(false);
 
-        navPanel.add(createNavButton("<<", e -> currentDate = currentDate.minusYears(1)));
-        navPanel.add(createNavButton("<", e -> currentDate = currentDate.minusMonths(1)));
-        navPanel.add(createNavButton("今天", e -> currentDate = LocalDate.now()));
-        navPanel.add(createNavButton(">", e -> currentDate = currentDate.plusMonths(1)));
-        navPanel.add(createNavButton(">>", e -> currentDate = currentDate.plusYears(1)));
+        navPanel.add(createStyledNavButton("<<", e -> currentDate = currentDate.minusYears(1)));
+        navPanel.add(createStyledNavButton("<", e -> currentDate = currentDate.minusMonths(1)));
+        navPanel.add(createStyledNavButton("今天", e -> currentDate = LocalDate.now()));
+        navPanel.add(createStyledNavButton(">", e -> currentDate = currentDate.plusMonths(1)));
+        navPanel.add(createStyledNavButton(">>", e -> currentDate = currentDate.plusYears(1)));
 
         controlPanel.add(navPanel, BorderLayout.EAST);
 
         return controlPanel;
     }
 
-    private JButton createNavButton(String text, ActionListener action) {
+    // =============== 修改按钮样式 ===============
+    private JButton createStyledNavButton(String text, ActionListener action) {
         JButton button = new JButton(text);
         button.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        button.setBackground(new Color(60, 120, 180));
-        button.setForeground(Color.WHITE);
+        button.setBackground(new Color(220, 230, 241)); // 浅蓝色背景
+        button.setForeground(Color.BLACK); // 黑色文字
         button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
+                BorderFactory.createEmptyBorder(5, 15, 5, 15)
+        ));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.addActionListener(action);
         button.addActionListener(e -> updateCalendar());
+
+        // 添加悬停效果
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(180, 200, 230));
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(30, 80, 150), 2),
+                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
+                ));
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(220, 230, 241));
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
+                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
+                ));
+            }
+        });
+
         return button;
     }
 
@@ -250,18 +274,26 @@ public class CalendarView extends JFrame {
 
         panel.setBackground(bgColor);
 
+        // 修复点击问题：确保标签不会拦截鼠标事件
+        dateLabel.setEnabled(false);
+        countLabel.setEnabled(false);
+
         // 添加鼠标悬停效果
         panel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 if (date.getMonth() == currentDate.getMonth()) {
                     panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                    if (taskCount > 0) {
+                        panel.setBorder(BorderFactory.createLineBorder(new Color(70, 130, 180), 2));
+                    }
                 }
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
                 panel.setCursor(Cursor.getDefaultCursor());
+                panel.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
             }
 
             @Override
@@ -291,7 +323,7 @@ public class CalendarView extends JFrame {
     private void showTasksForDate(LocalDate date) {
         List<Task> tasks = TaskDAO.getTasksByUser(userId);
         DefaultListModel<String> listModel = new DefaultListModel<>();
-        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
         for (Task task : tasks) {
             if (task.getDueDate().toLocalDate().equals(date)) {
@@ -300,8 +332,14 @@ public class CalendarView extends JFrame {
                 String priorityColor = "高".equals(task.getPriority()) ? "<font color='#FF3333'>" :
                         "中".equals(task.getPriority()) ? "<font color='#FF9900'>" : "<font color='#33AA33'>";
 
-                String taskInfo = String.format("<html>%s %s%s</font> - %s <small>(%s)</small></html>",
+                // 优化任务信息显示 - 增大字体
+                String taskInfo = String.format("<html><div style='padding:8px; font-size:14px;'>" +
+                                "<b style='font-size:16px;'>%s %s%s</font></b><br>" +
+                                "<div style='margin-top:5px;'>描述: %s</div>" +
+                                "<div style='margin-top:5px;'>截止时间: %s | 优先级: %s</div>" +
+                                "</div></html>",
                         statusIcon, priorityColor, task.getTitle(),
+                        task.getDescription(),
                         task.getDueDate().format(timeFormatter), task.getPriority());
 
                 listModel.addElement(taskInfo);
@@ -309,14 +347,16 @@ public class CalendarView extends JFrame {
         }
 
         JList<String> taskList = new JList<>(listModel);
-        taskList.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        taskList.setFont(new Font("微软雅黑", Font.PLAIN, 16)); // 增大字体
         taskList.setBackground(BACKGROUND_COLOR);
+        taskList.setFixedCellHeight(100); // 增加行高以显示更大字体
+
         taskList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                           boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                label.setBorder(new EmptyBorder(8, 15, 8, 15));
+                label.setBorder(new EmptyBorder(10, 20, 10, 20)); // 增加内边距
                 label.setOpaque(true);
 
                 if (isSelected) {
@@ -331,7 +371,7 @@ public class CalendarView extends JFrame {
         });
 
         JScrollPane scrollPane = new JScrollPane(taskList);
-        scrollPane.setPreferredSize(new Dimension(450, 350));
+        scrollPane.setPreferredSize(new Dimension(550, 450)); // 增大对话框尺寸
         scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
 
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日");
@@ -341,10 +381,10 @@ public class CalendarView extends JFrame {
         dialog.setLayout(new BorderLayout());
         dialog.getContentPane().setBackground(BACKGROUND_COLOR);
 
-        // 添加标题
+        // 添加标题 - 增大字体
         JLabel titleLabel = new JLabel(date.format(dateFormatter) + " 的任务", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 16));
-        titleLabel.setBorder(new EmptyBorder(15, 0, 15, 0));
+        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 20)); // 增大标题字体
+        titleLabel.setBorder(new EmptyBorder(20, 0, 20, 0)); // 增加标题内边距
         titleLabel.setForeground(TEXT_COLOR);
         dialog.add(titleLabel, BorderLayout.NORTH);
 
@@ -352,15 +392,11 @@ public class CalendarView extends JFrame {
         dialog.add(scrollPane, BorderLayout.CENTER);
 
         // 添加关闭按钮
-        JButton closeButton = new JButton("关闭");
-        closeButton.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        closeButton.setBackground(new Color(80, 140, 200));
-        closeButton.setForeground(Color.WHITE);
-        closeButton.setFocusPainted(false);
-        closeButton.setBorder(BorderFactory.createEmptyBorder(8, 25, 8, 25));
+        JButton closeButton = createStyledButton("关闭");
+        closeButton.setFont(new Font("微软雅黑", Font.BOLD, 16)); // 增大按钮字体
         closeButton.addActionListener(e -> dialog.dispose());
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 15));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 20)); // 增加垂直间距
         buttonPanel.setBackground(BACKGROUND_COLOR);
         buttonPanel.add(closeButton);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
@@ -368,6 +404,40 @@ public class CalendarView extends JFrame {
         dialog.pack();
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
+    }
+
+    // =============== 创建统一风格的按钮 ===============
+    private JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        button.setBackground(new Color(220, 230, 241)); // 浅蓝色背景
+        button.setForeground(Color.BLACK); // 黑色文字
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
+                BorderFactory.createEmptyBorder(10, 30, 10, 30) // 增加按钮内边距
+        ));
+
+        // 鼠标悬停效果
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(180, 200, 230));
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(30, 80, 150), 2),
+                        BorderFactory.createEmptyBorder(10, 30, 10, 30)
+                ));
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(220, 230, 241));
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
+                        BorderFactory.createEmptyBorder(10, 30, 10, 30)
+                ));
+            }
+        });
+
+        return button;
     }
 
     public static void main(String[] args) {

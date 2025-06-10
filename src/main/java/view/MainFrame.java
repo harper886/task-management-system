@@ -9,6 +9,7 @@ import org.jfree.chart.plot.PiePlot;
 import org.jfree.data.general.DefaultPieDataset;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
@@ -37,84 +38,72 @@ public class MainFrame extends JFrame {
     public MainFrame(int userId) {
         this.userId = userId;
         setTitle("任务管理系统");
-        setSize(1000, 700); // 增加宽度以容纳更多内容
+        setSize(1200, 800); // 增加尺寸以提供更多空间
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        getContentPane().setBackground(new Color(240, 248, 255)); // 设置背景色
 
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        initUI();
+        refreshTasks();
+        startRealtimeUpdates();
+    }
 
-        // 按钮面板
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton addButton = new JButton("添加任务");
-        JButton editButton = new JButton("编辑任务");
-        JButton deleteButton = new JButton("删除任务");
-        JButton refreshButton = new JButton("刷新");
-        JButton exportButton = new JButton("导出任务");
+    private void initUI() {
+        // 主面板使用边框布局
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        mainPanel.setBackground(new Color(240, 248, 255));
 
-        // 新增：回收站按钮
-        JButton trashButton = new JButton("回收站");
+        // =============== 顶部按钮面板 ===============
+        JPanel buttonPanel = createButtonPanel();
 
-        // 新增排序按钮
-        JButton sortByDueDateButton = new JButton("按截止时间排序");
-        JButton sortByStatusButton = new JButton("按状态排序");
-
-        // 新增：日历视图按钮
-        JButton calendarButton = new JButton("日历视图");
-
-        // 新增：统计图表按钮
-        JButton statsButton = new JButton("统计图表");
-
-        buttonPanel.add(addButton);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(refreshButton);
-        buttonPanel.add(exportButton);
-        buttonPanel.add(trashButton); // 添加回收站按钮
-        buttonPanel.add(sortByDueDateButton);
-        buttonPanel.add(sortByStatusButton);
-        buttonPanel.add(calendarButton); // 添加日历视图按钮
-        buttonPanel.add(statsButton); // 添加统计图表按钮
-
-        // 任务表格
-        tableModel = new DefaultTableModel(new Object[]{"ID", "标题", "优先级", "截止时间", "状态"}, 0) {
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                // 使ID列可以正确排序
-                if (columnIndex == 0) return Integer.class;
-                return Object.class;
-            }
-        };
-        tasksTable = new JTable(tableModel);
-
-        // 创建排序器并设置
-        sorter = new TableRowSorter<>(tableModel);
-        tasksTable.setRowSorter(sorter);
-
-        // 设置截止时间列的排序器
-        sorter.setComparator(3, new DueDateComparator());
-
-        // 设置状态列的排序器
-        sorter.setComparator(4, new StatusComparator());
-
-        JScrollPane scrollPane = new JScrollPane(tasksTable);
-
-        // =============== 新增实时面板 ===============
+        // =============== 实时信息面板 ===============
         createRealtimePanel();
 
         // 创建北部容器，包含按钮面板和实时面板
         JPanel northContainer = new JPanel(new BorderLayout());
         northContainer.add(buttonPanel, BorderLayout.NORTH);
-        northContainer.add(realtimePanel, BorderLayout.CENTER);
+        northContainer.add(realtimePanel, BorderLayout.SOUTH);
+        northContainer.setBackground(new Color(240, 248, 255));
 
-        panel.add(northContainer, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(northContainer, BorderLayout.NORTH);
 
-        add(panel);
-        refreshTasks();
+        // =============== 任务表格 ===============
+        JPanel tablePanel = createTablePanel();
+        mainPanel.add(new JScrollPane(tablePanel), BorderLayout.CENTER);
 
-        // 启动实时更新
-        startRealtimeUpdates();
+        add(mainPanel);
+    }
+
+    private JPanel createButtonPanel() {
+        // 使用流式布局，允许按钮换行
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        buttonPanel.setBackground(new Color(240, 248, 255));
+        buttonPanel.setBorder(BorderFactory.createTitledBorder("任务操作"));
+
+        // 创建按钮并应用统一样式
+        JButton addButton = createStyledButton("添加任务");
+        JButton editButton = createStyledButton("编辑任务");
+        JButton deleteButton = createStyledButton("删除任务");
+        JButton refreshButton = createStyledButton("刷新");
+        JButton exportButton = createStyledButton("导出任务");
+        JButton trashButton = createStyledButton("回收站");
+        JButton sortByDueDateButton = createStyledButton("按截止时间排序");
+        JButton sortByStatusButton = createStyledButton("按状态排序");
+        JButton calendarButton = createStyledButton("日历视图");
+        JButton statsButton = createStyledButton("统计图表");
+
+        // 添加按钮到面板
+        buttonPanel.add(addButton);
+        buttonPanel.add(editButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(refreshButton);
+        buttonPanel.add(exportButton);
+        buttonPanel.add(trashButton);
+        buttonPanel.add(sortByDueDateButton);
+        buttonPanel.add(sortByStatusButton);
+        buttonPanel.add(calendarButton);
+        buttonPanel.add(statsButton);
 
         // 按钮事件
         addButton.addActionListener(e -> {
@@ -188,29 +177,135 @@ public class MainFrame extends JFrame {
         statsButton.addActionListener(e -> {
             new StatisticsFrame(userId).setVisible(true);
         });
+
+        return buttonPanel;
+    }
+
+    private JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        button.setBackground(new Color(220, 230, 241)); // 浅蓝色背景
+        button.setForeground(Color.BLACK); // 黑色文字
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
+                BorderFactory.createEmptyBorder(8, 15, 8, 15)
+        ));
+
+        // 鼠标悬停效果
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(180, 200, 230));
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(30, 80, 150), 2),
+                        BorderFactory.createEmptyBorder(8, 15, 8, 15)
+                ));
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(220, 230, 241));
+                button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
+                        BorderFactory.createEmptyBorder(8, 15, 8, 15)
+                ));
+            }
+        });
+
+        return button;
+    }
+
+    private JPanel createTablePanel() {
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBackground(new Color(240, 248, 255));
+
+        // 任务表格
+        tableModel = new DefaultTableModel(new Object[]{"ID", "标题", "优先级", "截止时间", "状态"}, 0) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                // 使ID列可以正确排序
+                if (columnIndex == 0) return Integer.class;
+                return Object.class;
+            }
+        };
+        tasksTable = new JTable(tableModel);
+
+        // =============== 增大表格字体 ===============
+        tasksTable.setFont(new Font("微软雅黑", Font.PLAIN, 16)); // 从14增大到16
+        tasksTable.setRowHeight(35); // 从30增大到35
+        tasksTable.getTableHeader().setFont(new Font("微软雅黑", Font.BOLD, 16)); // 从14增大到16
+
+        // 创建排序器并设置
+        sorter = new TableRowSorter<>(tableModel);
+        tasksTable.setRowSorter(sorter);
+
+        // 设置截止时间列的排序器
+        sorter.setComparator(3, new DueDateComparator());
+
+        // 设置状态列的排序器
+        sorter.setComparator(4, new StatusComparator());
+
+        // 设置表格渲染器
+        tasksTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                // 设置交替行颜色
+                if (row % 2 == 0) {
+                    c.setBackground(new Color(245, 250, 255)); // 浅蓝色
+                } else {
+                    c.setBackground(Color.WHITE);
+                }
+
+                // 设置选中行颜色
+                if (isSelected) {
+                    c.setBackground(new Color(200, 220, 255)); // 深蓝色
+                }
+
+                // 设置优先级颜色
+                if (column == 2) {
+                    String priority = (String) value;
+                    if ("高".equals(priority)) {
+                        c.setForeground(Color.RED);
+                    } else if ("中".equals(priority)) {
+                        c.setForeground(new Color(255, 140, 0)); // 橙色
+                    } else {
+                        c.setForeground(new Color(0, 128, 0)); // 绿色
+                    }
+                } else {
+                    c.setForeground(Color.BLACK);
+                }
+
+                return c;
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(tasksTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("任务列表"));
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+
+        return tablePanel;
     }
 
     // =============== 新增方法：创建实时面板 ===============
     private void createRealtimePanel() {
-        realtimePanel = new JPanel(new GridLayout(1, 3, 10, 0));
-        realtimePanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(5, 0, 10, 0),
-                BorderFactory.createTitledBorder("实时信息")
-        ));
-        realtimePanel.setBackground(new Color(240, 245, 255));  // 设置浅蓝色背景
+        realtimePanel = new JPanel(new GridLayout(1, 3, 10, 10));
+        realtimePanel.setBorder(BorderFactory.createTitledBorder("实时信息"));
+        realtimePanel.setBackground(new Color(230, 240, 255));  // 设置浅蓝色背景
 
         // 系统时间显示
         timeLabel = new JLabel("", SwingConstants.CENTER);
-        timeLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        timeLabel.setFont(new Font("微软雅黑", Font.BOLD, 16)); // 从14增大到16
         updateTime(); // 初始更新时间
 
         // 任务统计
         taskStats = new JLabel("正在加载...", SwingConstants.CENTER);
-        taskStats.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        taskStats.setFont(new Font("微软雅黑", Font.PLAIN, 16)); // 从14增大到16
 
         // 系统状态
         systemStatus = new JLabel("✓ 系统运行正常", SwingConstants.CENTER);
-        systemStatus.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        systemStatus.setFont(new Font("微软雅黑", Font.PLAIN, 16)); // 从14增大到16
         systemStatus.setForeground(new Color(0, 128, 0));
 
         realtimePanel.add(timeLabel);
