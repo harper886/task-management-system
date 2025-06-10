@@ -49,6 +49,9 @@ public class MainFrame extends JFrame {
         JButton refreshButton = new JButton("刷新");
         JButton exportButton = new JButton("导出任务");
 
+        // 新增：回收站按钮
+        JButton trashButton = new JButton("回收站");
+
         // 新增排序按钮
         JButton sortByDueDateButton = new JButton("按截止时间排序");
         JButton sortByStatusButton = new JButton("按状态排序");
@@ -58,6 +61,7 @@ public class MainFrame extends JFrame {
         buttonPanel.add(deleteButton);
         buttonPanel.add(refreshButton);
         buttonPanel.add(exportButton);
+        buttonPanel.add(trashButton); // 添加回收站按钮
         buttonPanel.add(sortByDueDateButton);
         buttonPanel.add(sortByStatusButton);
 
@@ -118,6 +122,12 @@ public class MainFrame extends JFrame {
             }
         });
 
+        // 添加回收站按钮事件
+        trashButton.addActionListener(e -> {
+            new TrashFrame(userId).setVisible(true);
+        });
+
+        // 修改删除按钮事件（改为软删除）
         deleteButton.addActionListener(e -> {
             int selectedRow = tasksTable.getSelectedRow();
             if (selectedRow != -1) {
@@ -125,13 +135,14 @@ public class MainFrame extends JFrame {
                 int taskId = (int) tableModel.getValueAt(modelRow, 0);
                 int confirm = JOptionPane.showConfirmDialog(
                         this,
-                        "确定删除此任务吗？",
+                        "确定删除此任务吗？任务将移至回收站",
                         "确认删除",
                         JOptionPane.YES_NO_OPTION
                 );
                 if (confirm == JOptionPane.YES_OPTION) {
-                    if (TaskDAO.deleteTask(taskId)) {
+                    if (TaskDAO.softDeleteTask(taskId)) {
                         refreshTasks();
+                        JOptionPane.showMessageDialog(this, "任务已移至回收站");
                     } else {
                         JOptionPane.showMessageDialog(this, "删除失败");
                     }
@@ -144,7 +155,7 @@ public class MainFrame extends JFrame {
         refreshButton.addActionListener(e -> refreshTasks());
         exportButton.addActionListener(e -> new ExportTasksDialog(userId).setVisible(true));
 
-        // 新增排序按钮事件 (修复了List.of()问题)
+        // 新增排序按钮事件
         sortByDueDateButton.addActionListener(e -> {
             // 按截止时间升序排序
             sorter.setSortKeys(Collections.singletonList(new RowSorter.SortKey(3, SortOrder.ASCENDING)));
@@ -307,5 +318,14 @@ public class MainFrame extends JFrame {
             }
             return statusOrder.length; // 未知状态放在最后
         }
+    }
+
+    // 添加main方法便于测试
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            // 模拟用户ID
+            MainFrame frame = new MainFrame(1);
+            frame.setVisible(true);
+        });
     }
 }
