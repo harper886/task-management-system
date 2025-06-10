@@ -164,7 +164,7 @@ public class LoginFrame extends JFrame {
         cardPanel.add(registerButton);
 
         // 添加底部版权信息
-        JLabel copyrightLabel = new JLabel("© 2023 任务管理系统 - 软件项目管理作业");
+        JLabel copyrightLabel = new JLabel("© 2025 任务管理系统 - 软件项目管理作业");
         copyrightLabel.setForeground(new Color(100, 100, 100));
         copyrightLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         copyrightLabel.setBorder(new EmptyBorder(15, 0, 5, 0));
