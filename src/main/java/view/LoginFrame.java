@@ -14,11 +14,11 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.Random;
 
 public class LoginFrame extends JFrame {
-    private JTextField usernameField;
-    private JPasswordField passwordField;
-    private JTextField captchaField;
+    public JTextField usernameField;
+    public JPasswordField passwordField;
+    public JTextField captchaField;
     private JLabel captchaLabel;
-    private String captcha;
+    public String captcha;
     private JButton loginButton;
     private JButton registerButton;
 
@@ -406,7 +406,7 @@ public class LoginFrame extends JFrame {
         return sb.toString();
     }
 
-    private class LoginButtonListener implements ActionListener {
+    public class LoginButtonListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             String username = usernameField.getText();

@@ -2,10 +2,7 @@ package dao;
 
 import model.User;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class UserDAO {
 
@@ -25,22 +22,45 @@ public class UserDAO {
                 return user;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Authentication error: " + e.getMessage());
         }
         return null;
     }
 
     public static boolean registerUser(String username, String password, String email) {
+        // 输入验证：检查空值或空白字符串
+        if (username == null || username.trim().isEmpty() ||
+                password == null || password.trim().isEmpty() ||
+                email == null || email.trim().isEmpty()) {
+            System.out.println("Registration failed: Empty fields");
+            return false;
+        }
+
+        // 去除前后空格
+        username = username.trim();
+        password = password.trim();
+        email = email.trim();
+
         String sql = "INSERT INTO user (username, password, email, role) VALUES (?, ?, ?, 'user')";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             pstmt.setString(2, password);
             pstmt.setString(3, email);
-            pstmt.executeUpdate();
-            return true;
+
+            int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("User registered: " + username);
+                return true;
+            }
+            return false;
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 处理唯一约束冲突
+            if (e instanceof SQLIntegrityConstraintViolationException) {
+                System.out.println("Registration failed: " + e.getMessage());
+            } else {
+                System.err.println("Database error: " + e.getMessage());
+            }
             return false;
         }
     }
