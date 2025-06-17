@@ -74,8 +74,8 @@ public class LoginFrame extends JFrame {
         usernameField = (JTextField) ((JPanel)usernamePanel.getComponent(1)).getComponent(0);
         cardPanel.add(usernamePanel);
 
-        // 添加间距
-        cardPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        // 添加间距n
+                cardPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
         // 密码输入区域
         JPanel passwordPanel = createInputPanel("密码", "请输入密码", true);

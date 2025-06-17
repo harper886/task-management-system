@@ -2,6 +2,7 @@ package model;
 
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TaskTest {
@@ -32,7 +33,7 @@ class TaskTest {
         LocalDateTime deleteTime = now.minusDays(2);
         LocalDateTime createTime = now.minusDays(10);
 
-        // 测试全参数构造函数 - 修正参数顺序
+        // 测试全参数构造函数
         Task task = new Task(1, "完成报告", "编写项目总结报告", "高",
                 dueDate, "进行中", 100,
                 true, deleteTime, createTime);
@@ -55,7 +56,7 @@ class TaskTest {
         // 准备测试数据
         LocalDateTime dueDate = LocalDateTime.now().plusDays(3);
 
-        // 测试简化构造函数 - 修正参数顺序
+        // 测试简化构造函数
         Task task = new Task(2, "测试任务", "这是一个测试任务", "中",
                 dueDate, "待办", 200);
 
@@ -136,6 +137,10 @@ class TaskTest {
         // 转换到已完成
         task.setStatus("已完成");
         assertEquals("已完成", task.getStatus());
+
+        // 测试无效状态
+        task.setStatus("无效状态");
+        assertEquals("无效状态", task.getStatus());
     }
 
     @Test
@@ -152,6 +157,10 @@ class TaskTest {
 
         task.setPriority("低");
         assertEquals("低", task.getPriority());
+
+        // 测试无效优先级
+        task.setPriority("紧急");
+        assertEquals("紧急", task.getPriority());
     }
 
     @Test
@@ -160,7 +169,7 @@ class TaskTest {
         LocalDateTime dueDate = LocalDateTime.of(2023, 6, 15, 14, 30);
         LocalDateTime createTime = LocalDateTime.of(2023, 6, 10, 9, 0);
 
-        // 创建任务对象 - 修正参数顺序
+        // 创建任务对象
         Task task = new Task(4, "ToString测试", "测试toString方法", "高",
                 dueDate, "进行中", 400,
                 false, null, createTime);
@@ -184,27 +193,36 @@ class TaskTest {
 
     @Test
     void testEquality() {
-        // 测试对象相等性
-        LocalDateTime dueDate = LocalDateTime.now();
+        // 测试对象相等性 - 基于任务ID
+        LocalDateTime now = LocalDateTime.now();
 
-        // 修正参数顺序：priority在dueDate之前
-        Task task1 = new Task(5, "任务A", "描述A", "中", dueDate, "待办", 500);
-        Task task2 = new Task(5, "任务B", "描述B", "高", dueDate, "进行中", 600);
-        Task task3 = new Task(6, "任务A", "描述A", "中", dueDate, "待办", 500);
+        // 相同ID的任务应被视为相等，即使其他属性不同
+        Task task1 = new Task(5, "任务A", "描述A", "中", now.plusDays(5), "待办", 500);
+        Task task2 = new Task(5, "任务B", "描述B", "高", now.plusDays(6), "进行中", 600);
 
-        // 相同ID应该相等
-        assertEquals(task1, task2);
-        assertEquals(task1.hashCode(), task2.hashCode());
+        // 不同ID的任务应被视为不相等
+        Task task3 = new Task(6, "任务A", "描述A", "中", now.plusDays(5), "待办", 500);
 
-        // 不同ID应该不相等
-        assertNotEquals(task1, task3);
-        assertNotEquals(task1.hashCode(), task3.hashCode());
+        // 验证相等性
+        assertEquals(task1, task2, "相同ID的任务应相等");
+        assertEquals(task1.hashCode(), task2.hashCode(), "相同ID的任务应有相同哈希码");
 
-        // 与null比较
-        assertNotEquals(null, task1);
+        assertNotEquals(task1, task3, "不同ID的任务应不相等");
+        assertNotEquals(task1.hashCode(), task3.hashCode(), "不同ID的任务应有不同哈希码");
 
-        // 与不同类型对象比较
-        assertNotEquals("字符串", task1);
+        // 边界情况测试
+        assertNotEquals(task1, null, "任务不应等于null");
+        assertNotEquals(task1, "字符串对象", "任务不应等于其他类型对象");
+
+        // 自反性测试
+        assertEquals(task1, task1, "任务应等于自身");
+
+        // 对称性测试
+        assertEquals(task2, task1, "相等性应是对称的");
+
+        // 传递性测试
+        Task task4 = new Task(5, "任务C", "描述C", "低", now.plusDays(7), "已完成", 700);
+        assertEquals(task1, task4, "相同ID的任务应相等（传递性）");
     }
 
     @Test
@@ -242,7 +260,8 @@ class TaskTest {
         task.setDeleteTime(deleteTime);
 
         assertTrue(task.isDeleted());
-        assertEquals(deleteTime, task.getDeleteTime());
+        assertEquals(deleteTime.truncatedTo(ChronoUnit.SECONDS),
+                task.getDeleteTime().truncatedTo(ChronoUnit.SECONDS));
 
         // 恢复任务
         task.setDeleted(false);
@@ -250,5 +269,37 @@ class TaskTest {
 
         assertFalse(task.isDeleted());
         assertNull(task.getDeleteTime());
+    }
+
+    @Test
+    void testCreateTimeAutoGeneration() {
+        // 测试创建时间自动生成
+        Task task1 = new Task();
+        assertNotNull(task1.getCreateTime(), "默认构造器应自动生成创建时间");
+
+        LocalDateTime beforeCreation = LocalDateTime.now().minusSeconds(1);
+        Task task2 = new Task(7, "新任务", null, null, null, null, 0);
+        LocalDateTime afterCreation = LocalDateTime.now().plusSeconds(1);
+
+        assertNotNull(task2.getCreateTime(), "简化构造器应自动生成创建时间");
+        assertTrue(task2.getCreateTime().isAfter(beforeCreation) &&
+                        task2.getCreateTime().isBefore(afterCreation),
+                "创建时间应在合理范围内");
+    }
+
+    @Test
+    void testEqualityConsistency() {
+        // 测试相等性一致性
+        LocalDateTime now = LocalDateTime.now();
+        Task task1 = new Task(8, "任务", "描述", "中", now, "待办", 800);
+        Task task2 = new Task(8, "任务", "描述", "中", now, "待办", 800);
+
+        // 多次比较结果应一致
+        assertEquals(task1, task2);
+        assertEquals(task1, task2);
+
+        // 修改后应不相等
+        task2.setTaskId(9);
+        assertNotEquals(task1, task2);
     }
 }

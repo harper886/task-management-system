@@ -1,6 +1,7 @@
 package model;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class Task {
     private int taskId;
@@ -144,5 +145,16 @@ public class Task {
                 ", deleteTime=" + deleteTime +
                 ", createTime=" + createTime +
                 '}';
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Task task = (Task) o;
+        return taskId == task.taskId; // 仅根据任务ID判断相等性
+    }
+    @Override
+    public int hashCode() {
+        return Objects.hash(taskId); // 仅基于任务ID生成哈希码
     }
 }
