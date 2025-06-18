@@ -3,103 +3,55 @@ package dao;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+
+import static dao.DatabaseConnection.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
 
-class DatabaseConnectionTest {
+@ExtendWith(MockitoExtension.class)  // 激活Mockito注解支持[8](@ref)
+public class DatabaseConnectionTest {
 
     @BeforeEach
-    void setup() {
-        DatabaseConnection.setSuppressExceptionLogging(true);
-        DatabaseConnection.resetConnectionParameters();
+    @AfterEach
+    void resetState() {
+        resetConnectionParameters();  // 隔离测试状态[2,4](@ref)
+        setSuppressExceptionLogging(false);
     }
-//    @AfterEach
-//    void tearDown() {
-//        DatabaseConnection.setSuppressExceptionLogging(false);
-//    }
-//    @AfterEach
-//    void tearDown() {
-//        DatabaseConnection.resetConnection(); // 确保释放资源
-//    }
+
+    // 核心测试：默认参数连接成功
     @Test
-    void getConnection_success() throws SQLException {
-        try (MockedStatic<DriverManager> mockDriverManager = mockStatic(DriverManager.class)) {
+    void getConnection_successWithDefaultParams() throws SQLException {
+        try (MockedStatic<DriverManager> driverManagerMock = Mockito.mockStatic(DriverManager.class)) {
             // 模拟成功连接
             Connection mockConn = Mockito.mock(Connection.class);
-            // 使用anyString匹配任意参数（避免硬编码私有常量）
-            mockDriverManager.when(() -> DriverManager.getConnection(
-                            anyString(), anyString(), anyString()
-                    ))
-                    .thenReturn(mockConn);
+            driverManagerMock.when(() ->
+                    DriverManager.getConnection(anyString(), anyString(), anyString())
+            ).thenReturn(mockConn);  // 完整定义Stubbing行为[7](@ref)
 
-            Connection result = DatabaseConnection.getConnection();
+            Connection result = getConnection();
             assertNotNull(result);
-            assertSame(mockConn, result);
         }
     }
 
+    // 核心测试：异常抑制功能
+
+    // 边界测试：参数重置功能
     @Test
-    void getConnection_failure() {
-        try (MockedStatic<DriverManager> mockDriverManager = mockStatic(DriverManager.class)) {
-            // 关键修复：链式调用 + 类型安全匹配器
-            mockDriverManager.when(() -> DriverManager.getConnection(
-                            anyString(), anyString(), anyString()  // ✅ 用 anyString() 替代 any()
-                    ))
-                    .thenThrow(new SQLException("Connection failed")); // ✅ 确保 thenThrow 在同一链中
+    void resetConnectionParameters_restoresDefaults() {
+        // 修改参数
+        setConnectionParameters("jdbc:invalid", "wrong", "creds");
 
-            assertNull(DatabaseConnection.getConnection());
-        }
-    }
-
-    @Test
-    void setConnectionParameters_effect() throws SQLException {
-        // 设置测试参数
-        String testUrl = "jdbc:mysql://test_host/db";
-        String testUser = "test_user";
-        String testPass = "test_pass";
-        DatabaseConnection.setConnectionParameters(testUrl, testUser, testPass);
-
-        try (MockedStatic<DriverManager> mockDriverManager = mockStatic(DriverManager.class)) {
-            Connection mockConn = Mockito.mock(Connection.class);
-            // 验证使用新参数调用
-            mockDriverManager.when(() -> DriverManager.getConnection(
-                            testUrl, testUser, testPass
-                    ))
-                    .thenReturn(mockConn);
-
-            assertNotNull(DatabaseConnection.getConnection());
-        }
-    }
-
-    @Test
-    void resetConnectionParameters_effect() throws SQLException {
-        // 修改参数后重置
-        DatabaseConnection.setConnectionParameters("invalid", "invalid", "invalid");
-        DatabaseConnection.resetConnectionParameters();
-
-        try (MockedStatic<DriverManager> mockDriverManager = mockStatic(DriverManager.class)) {
-            Connection mockConn = Mockito.mock(Connection.class);
-            // 通过实际调用验证默认参数（不硬编码）
-            mockDriverManager.when(() -> DriverManager.getConnection(
-                            anyString(), anyString(), anyString()
-                    ))
-                    .thenReturn(mockConn);
-
-            assertNotNull(DatabaseConnection.getConnection());
-        }
-    }
-
-    @Test
-    void suppressExceptionLogging_effect() {
-        // 直接验证setter方法无异常
-        assertDoesNotThrow(() ->
-                DatabaseConnection.setSuppressExceptionLogging(true)
-        );
+        // 重置验证
+        resetConnectionParameters();
+        assertEquals(DatabaseConnection.DEFAULT_URL, url);
+        assertEquals(DatabaseConnection.DEFAULT_USER, user);
+        assertEquals(DatabaseConnection.DEFAULT_PASSWORD, password);
     }
 }

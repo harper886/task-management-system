@@ -32,7 +32,7 @@ public class ReminderChecker {
         }, 0, 5 * 60 * 1000); // 每5分钟检查一次
     }
 
-    private void checkUpcomingTasks() {
+    void checkUpcomingTasks() {
         List<Task> tasks = TaskDAO.getTasksByUser(userId);
         LocalDateTime now = LocalDateTime.now();
 

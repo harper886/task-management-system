@@ -6,14 +6,14 @@ import java.sql.SQLException;
 
 public class DatabaseConnection {
     // 默认配置
-    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/task_db";
-    private static final String DEFAULT_USER = "root";
-    private static final String DEFAULT_PASSWORD = "root";
+    public static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/task_db";
+    public static final String DEFAULT_USER = "root";
+    public static final String DEFAULT_PASSWORD = "root";
 
     // 动态配置参数
-    private static String url = DEFAULT_URL;
-    private static String user = DEFAULT_USER;
-    private static String password = DEFAULT_PASSWORD;
+    public static String url = DEFAULT_URL;
+    public static String user = DEFAULT_USER;
+    public static String password = DEFAULT_PASSWORD;
     private static boolean suppressExceptionLogging = false;
 
     static {
